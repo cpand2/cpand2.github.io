@@ -1,0 +1,193 @@
+"use strict"; // Operate in Strict mode such that variables must be declared before used!
+
+import engine from "../engine/index.js";
+
+class MyGame extends engine.Scene {
+  constructor() {
+    super();
+    
+    this.kBg = "assets/Rock_044_BaseColor.jpg";
+    this.kBgNormal = "assets/Rock_044_Normal.jpg";
+    this.kPlayer = "assets/Pebbles_028_BaseColor.jpg";
+    this.kPlayerNormal = "assets/Pebbles_028_Normal.jpg";
+
+    this.mCamera = null;
+  }
+
+  load() {
+    engine.texture.load(this.kBg);
+    engine.texture.load(this.kBgNormal);
+    engine.texture.load(this.kPlayer);
+    engine.texture.load(this.kPlayerNormal);
+  }
+  
+  unload() {
+    engine.texture.unload(this.kBg);
+    engine.texture.unload(this.kBgNormal);
+    engine.texture.unload(this.kPlayer);
+    engine.texture.unload(this.kPlayerNormal);
+  }
+
+  init() {
+    this.mCamera = new engine.Camera(
+      vec2.fromValues(50, 40), // position of the camera
+      100, // width of camera
+      [0, 0, 640, 480] // viewport (orgX, orgY, width, height)
+    );
+    this.mCamera.setBackgroundColor([0.8, 0.8, 0.8, 1]);
+
+    // Light objects ------------------------------------------------------------------------------------
+    this.lightSource = new engine.LightSource();
+    this.lightSource.getXform().setPosition(50, 40, 10);
+    this.lightSource.setColor([0.97, 0.76, 0.47, 1.0]);
+    this.lightFlicker = new engine.Shake(0.07, 1, 450);
+    
+    this.blueLightSource = new engine.LightSource();
+    this.blueLightSource.getXform().setPosition(50, 40, 5);
+    this.blueLightSource.setColor([0.2, 0.5, 0.97, 1]);
+    this.blueLightSource.setFalloff([0.4, 0.04, 0.0001]);
+    
+    this.redLightSource = new engine.LightSource();
+    this.redLightSource.getXform().setPosition(50, 40, 1);
+    this.redLightSource.setColor([0.8, 0.1, 0.1, 1]);
+    this.redLightSource.setFalloff([0.4, 0.04, 0.0001]);
+    this.mRedLightAngle = 0;
+
+    this.mLights = [this.lightSource, this.blueLightSource, this.redLightSource];
+
+    // Renderables with normal map functionality ------------------------------------------
+    this.bgR = new engine.NormalMapRenderable(
+      this.kBg, // Texture
+      this.kBgNormal, // Normal map
+      this.lightSource, // First light source
+      this.redLightSource // Second light source (optional)
+    );
+    this.bgR.getXform().setSize(30, 30);
+    this.bgR.getXform().setPosition(50, 40);
+
+    this.mPlayer = new engine.NormalMapRenderable(
+      this.kPlayer,
+      this.kPlayerNormal,
+      this.lightSource,
+      this.blueLightSource
+    );
+    this.mPlayer.getXform().setSize(100, 100);
+    this.mPlayer.getXform().setPosition(50, 40);
+    
+    // Status messages ------------------------------------------------------------------------------------
+    this.mMsg = new engine.FontRenderable("");
+    this.mMsg.setColor([1, 1, 1, 1]);
+    this.mMsg.getXform().setPosition(50, 40);
+    this.mMsg.setTextHeight(2);
+
+    this.mMsg2 = new engine.FontRenderable("");
+    this.mMsg2.setColor([1, 1, 1, 1]);
+    this.mMsg2.getXform().setPosition(5, 5);
+    this.mMsg2.setTextHeight(2);
+  }
+
+  draw() {
+    engine.clearCanvas([0.9, 0.9, 0.9, 1.0]); // clear to light gray
+    this.mCamera.setViewAndCameraMatrix();
+
+    this.mPlayer.draw(this.mCamera);
+    this.bgR.draw(this.mCamera);
+
+    this.mMsg.draw(this.mCamera);
+    this.mMsg2.draw(this.mCamera);
+  }
+
+  // The update function, updates the application state. Make sure to _NOT_ draw
+  // anything from this function!
+  update() {
+    // red light movement ------------------------------------------------------------------------------------
+    let kOrbitRadius = 15;
+    let kRotSpeed = 100;
+    let kRotSpeedRadians = (kRotSpeed * 2 * Math.PI / 360) / 60;
+
+    this.redLightSource.getXform().setPosition(
+      50 + kOrbitRadius * Math.cos(this.mRedLightAngle),
+      40 + kOrbitRadius * Math.sin(this.mRedLightAngle),
+      this.redLightSource.getXform().getZPos()
+    )
+    this.mRedLightAngle += kRotSpeedRadians;
+
+    // yellow light intensity and movement ------------------------------------------------------------------------------------
+    if (this.lightFlicker.mNumCyclesLeft < this.lightFlicker.mCycles / 1.4) {
+      this.lightFlicker.reStart();
+    }
+    this.lightSource.setIntensity(
+      this.lightSource.getIntensity() + this.lightFlicker.getNext()
+    );
+
+    this.lightSource.getXform().setPosition(
+      this.mCamera.mouseWCX(),
+      this.mCamera.mouseWCY(),
+      this.lightSource.getXform().getZPos()
+    );
+    
+    // blue light controls and falloff ------------------------------------------------------------------------------------
+    if (engine.input.isKeyPressed(engine.input.keys.Up)) {
+      this.blueLightSource.getXform().incYPosBy(1);
+    }
+    if (engine.input.isKeyPressed(engine.input.keys.Down)) {
+      this.blueLightSource.getXform().incYPosBy(-1);
+    }
+    // light x pos
+    if (engine.input.isKeyPressed(engine.input.keys.Left)) {
+      this.blueLightSource.getXform().incXPosBy(-1);
+    }
+    if (engine.input.isKeyPressed(engine.input.keys.Right)) {
+      this.blueLightSource.getXform().incXPosBy(1);
+    }
+    // light Z pos
+    if (engine.input.isKeyPressed(engine.input.keys.W)) {
+      this.blueLightSource.getXform().incZPosBy(-0.5);
+
+      if (this.blueLightSource.getXform().getZPos() < 0)
+        this.blueLightSource.getXform().setZPos(0);
+    }
+    if (engine.input.isKeyPressed(engine.input.keys.Q)) {
+      this.blueLightSource.getXform().incZPosBy(0.5);
+    }
+
+    // blue light falloff controls
+    if (engine.input.isKeyPressed(engine.input.keys.F))
+      this.blueLightSource.incFalloffBy([0.01, 0, 0]);
+    if (engine.input.isKeyPressed(engine.input.keys.G))
+      this.blueLightSource.incFalloffBy([0, 0.01, 0]);
+    if (engine.input.isKeyPressed(engine.input.keys.H))
+      this.blueLightSource.incFalloffBy([0, 0, 0.01]);
+    if (engine.input.isKeyPressed(engine.input.keys.V))
+      this.blueLightSource.incFalloffBy([-0.01, 0, 0]);
+    if (engine.input.isKeyPressed(engine.input.keys.B))
+      this.blueLightSource.incFalloffBy([0, -0.01, 0]);
+    if (engine.input.isKeyPressed(engine.input.keys.N))
+      this.blueLightSource.incFalloffBy([0, 0, -0.01]);
+
+    // diffuse and specular toggles ------------------------------------------------------------------------------------
+    if (engine.input.isKeyClicked(engine.input.keys.O))
+      this.mLights.forEach(l => {
+        l.mHasDiffuse = !l.mHasDiffuse;
+      });
+
+    if (engine.input.isKeyClicked(engine.input.keys.P))
+      this.mLights.forEach(l => {
+        l.mHasSpec = !l.mHasSpec;
+      });
+
+    // status messages ------------------------------------------------------------------------------------
+    let lightPos = this.lightSource.getXform().getPosition();
+    this.mMsg.setText("LightPos: " + lightPos);
+    this.mMsg.getXform().setPosition(lightPos[0], lightPos[1]);
+
+    this.mMsg2.setText("Light falloff: " + this.blueLightSource.getFalloff());
+  }
+}
+
+window.onload = function () {
+  engine.init("GLCanvas");
+
+  let myGame = new MyGame();
+  myGame.start();
+};

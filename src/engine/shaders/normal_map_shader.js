@@ -20,47 +20,99 @@ class NormalMapShader extends TextureShader {
       "normalSampler"
     );
 
-    this.mCameraPosRef = gl.getUniformLocation(
+    this.mAmbientColorRef = gl.getUniformLocation(
       this.mCompiledShader,
-      "uCameraPos"
+      "uAmbientColor"
     );
+
+    this.getGLUniformRefs1();
+    this.getGLUniformRefs2();
+  }
+
+  activate(pixelColor, trsMatrix, camera, light, light2) {
+    // first call the super class' activate
+    super.activate(pixelColor, trsMatrix, camera.getCameraMatrix());
+    
+    let gl = glSys.get();
+
+    gl.uniform1i(this.mTextureRef, 0);
+    gl.uniform1i(this.mNormalRef, 1);
+    gl.uniform4fv(this.mAmbientColorRef, camera.mAmbientColor);
+
+    gl.uniform1i(this.mHasDiffuseRef, light.mHasDiffuse);
+    gl.uniform1i(this.mHasSpecRef, light.mHasSpec);
+    gl.uniform3fv(this.mLightPosRef, light.getXform().getPosition());
+    gl.uniform4fv(this.mLightColorRef, light.mColor);
+    gl.uniform3fv(this.mFalloffRef, light.mFalloff);
+
+    if (light2 != null) {
+      gl.uniform1i(this.mIsSecondLightActiveRef, true);
+
+      gl.uniform1i(this.mHasDiffuseRef2, light2.mHasDiffuse);
+      gl.uniform1i(this.mHasSpecRef2, light2.mHasSpec);
+      gl.uniform3fv(this.mLightPosRef2, light2.getXform().getPosition());
+      gl.uniform4fv(this.mLightColorRef2, light2.mColor);
+      gl.uniform3fv(this.mFalloffRef2, light2.mFalloff);
+    } else {
+      gl.uniform1i(this.mIsSecondLightActiveRef, false);
+    }
+  }
+
+  getGLUniformRefs1() {
+    let gl = glSys.get();
 
     this.mLightPosRef = gl.getUniformLocation(
       this.mCompiledShader,
       "uLightPos"
     );
 
-    this.mLightIntensityRef = gl.getUniformLocation(
-      this.mCompiledShader,
-      "uIntensity"
-    );
-
     this.mLightColorRef = gl.getUniformLocation(
       this.mCompiledShader,
       "uLightColor"
     );
+
+    this.mFalloffRef = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uFalloff");
+
+    this.mHasDiffuseRef = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uHasDiffuse");
+
+    this.mHasSpecRef = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uHasSpec");
   }
 
-  activate(pixelColor, trsMatrix, camera, light) {
-    // first call the super class' activate
-    super.activate(pixelColor, trsMatrix, camera.getCameraMatrix());
-
-    // now our own functionality: enable texture coordinate array
+  getGLUniformRefs2() {
     let gl = glSys.get();
 
-    // bind uSampler to texture 0
-    gl.uniform1i(this.mTextureRef, 0); // texture.activateTexture() binds to Texture0
-    gl.uniform1i(this.mNormalRef, 1);
-
-    let cameraVec4 = camera.getCameraPosVector();
-
-    gl.uniform3fv(
-      this.mCameraPosRef,
-      vec3.fromValues(cameraVec4[0], cameraVec4[1], cameraVec4[2])
+    this.mIsSecondLightActiveRef = gl.getUniformLocation(
+      this.mCompiledShader,
+      "isSecondLightActive"
     );
-    gl.uniform3fv(this.mLightPosRef, light.getXform().mPosition);
-    gl.uniform1f(this.mLightIntensityRef, light.mIntensity);
-    gl.uniform3fv(this.mLightColorRef, light.mColor);
+
+    this.mLightPosRef2 = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uLightPos2"
+    );
+
+    this.mLightColorRef2 = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uLightColor2"
+    );
+
+    this.mFalloffRef2 = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uFalloff2");
+
+    this.mHasDiffuseRef2 = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uHasDiffuse2");
+
+    this.mHasSpecRef2 = gl.getUniformLocation(
+      this.mCompiledShader,
+      "uHasSpec2");
   }
 }
 
