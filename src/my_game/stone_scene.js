@@ -48,9 +48,10 @@ class MyGame extends engine.Scene {
     this.blueLightSource.setFalloff([0.4, 0.04, 0.0001]);
     
     this.redLightSource = new engine.LightSource();
-    this.redLightSource.getXform().setPosition(50, 40, 1);
+    this.redLightSource.getXform().setPosition(50, 40, 3);
     this.redLightSource.setColor([0.8, 0.1, 0.1, 1]);
     this.redLightSource.setFalloff([0.4, 0.04, 0.0001]);
+    this.redLightBob = new engine.Oscillate(10, 10, 450);
     this.mRedLightAngle = 0;
 
     this.mLights = [this.lightSource, this.blueLightSource, this.redLightSource];
@@ -105,12 +106,19 @@ class MyGame extends engine.Scene {
     let kRotSpeed = 100;
     let kRotSpeedRadians = (kRotSpeed * 2 * Math.PI / 360) / 60;
 
+    if (this.redLightBob.mNumCyclesLeft < this.redLightBob.mCycles / 1.4) {
+      this.redLightBob.reStart();
+    }
     this.redLightSource.getXform().setPosition(
       50 + kOrbitRadius * Math.cos(this.mRedLightAngle),
       40 + kOrbitRadius * Math.sin(this.mRedLightAngle),
-      this.redLightSource.getXform().getZPos()
+      3 + this.redLightBob.getNext()
     )
     this.mRedLightAngle += kRotSpeedRadians;
+
+    this.lightSource.setIntensity(
+      this.lightSource.getIntensity() + this.lightFlicker.getNext()
+    );
 
     // yellow light intensity and movement ------------------------------------------------------------------------------------
     if (this.lightFlicker.mNumCyclesLeft < this.lightFlicker.mCycles / 1.4) {
@@ -126,21 +134,21 @@ class MyGame extends engine.Scene {
       this.lightSource.getXform().getZPos()
     );
     
-    // blue light controls and falloff ------------------------------------------------------------------------------------
+    // small renderable controls ------------------------------------------------------------------------------------
     if (engine.input.isKeyPressed(engine.input.keys.Up)) {
-      this.blueLightSource.getXform().incYPosBy(1);
+      this.bgR.getXform().incYPosBy(1);
     }
     if (engine.input.isKeyPressed(engine.input.keys.Down)) {
-      this.blueLightSource.getXform().incYPosBy(-1);
+      this.bgR.getXform().incYPosBy(-1);
     }
-    // light x pos
     if (engine.input.isKeyPressed(engine.input.keys.Left)) {
-      this.blueLightSource.getXform().incXPosBy(-1);
+      this.bgR.getXform().incXPosBy(-1);
     }
     if (engine.input.isKeyPressed(engine.input.keys.Right)) {
-      this.blueLightSource.getXform().incXPosBy(1);
+      this.bgR.getXform().incXPosBy(1);
     }
-    // light Z pos
+
+    // blue light Z pos ------------------------------------------------------------------------------------
     if (engine.input.isKeyPressed(engine.input.keys.W)) {
       this.blueLightSource.getXform().incZPosBy(-0.5);
 
@@ -151,7 +159,7 @@ class MyGame extends engine.Scene {
       this.blueLightSource.getXform().incZPosBy(0.5);
     }
 
-    // blue light falloff controls
+    // blue light falloff controls ------------------------------------------------------------------------------------
     if (engine.input.isKeyPressed(engine.input.keys.F))
       this.blueLightSource.incFalloffBy([0.01, 0, 0]);
     if (engine.input.isKeyPressed(engine.input.keys.G))
